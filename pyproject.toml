@@ -14,6 +14,9 @@ dependencies = ["numpy>=1.24"]
 [project.optional-dependencies]
 # Only what a test run needs; zarr-python is the correctness reference.
 test = ["pytest>=8", "zarr>=3", "hypothesis>=6", "s3fs>=2024.6"]
+# The M0 baseline contenders. Needs Python >=3.11 (zarr 3) and a VM in the
+# bucket's region; see scripts/bench_baseline.py.
+bench = ["zarr>=3", "s3fs>=2024.6", "tensorstore>=0.1.60"]
 
 [project.urls]
 Repository = "https://github.com/thinhngo-x/zarrstream"

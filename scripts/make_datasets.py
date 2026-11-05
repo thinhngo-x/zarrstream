@@ -44,6 +44,12 @@ CASES: dict[str, tuple[int, tuple[int, ...] | None, object]] = {
 # listed here. Unwritten chunks are absent in the store, which is what a hole is.
 HOLE_ROWS = [0, 1, 4, 7]
 
+# The throughput datasets. The correctness matrix above is ~7 MB on purpose, which
+# is far too small to measure MB/s — one request's latency dominates. These two are
+# the same data sharded and unsharded, so the baseline shows what sharding is worth.
+BENCH_CHUNKS = (256, 2048)
+BENCH_SHARDS = (4096, 2048)  # 16 chunks per shard
+
 
 def codec(name: object, zarr_format: int):
     """Resolve a codec name for this zarr format, or None for raw storage."""
@@ -79,6 +85,42 @@ def reference_data() -> np.ndarray:
     return base + rng.standard_normal(SHAPE, dtype="float32")
 
 
+def write_bench(root: str, gb: float, opts) -> list[str]:
+    """One array of roughly `gb` gigabytes, sharded and unsharded.
+
+    Generate this from a machine in the same region as the bucket — uploading it
+    over a home uplink takes far longer than the benchmark it feeds.
+    """
+    rows = int(gb * 1e9 / (4 * BENCH_CHUNKS[1]))
+    rows -= rows % BENCH_SHARDS[0]  # whole shards, so the index is uniform
+    shape = (max(rows, BENCH_SHARDS[0]), BENCH_CHUNKS[1])
+    rng = np.random.default_rng(1)
+    written = []
+
+    for name, shards in (("bench_sharded", BENCH_SHARDS), ("bench_flat", None)):
+        path = f"{root}/{name}"
+        kwargs = dict(
+            shape=shape,
+            chunks=BENCH_CHUNKS,
+            dtype="float32",
+            zarr_format=3,
+            fill_value=0.0,
+            overwrite=True,
+            compressors=[codec("zstd", 3)],
+            storage_options=opts or None,
+        )
+        if shards is not None:
+            kwargs["shards"] = shards
+        arr = zarr.create_array(path, **kwargs)
+        # A row block at a time: the whole array does not need to be in memory.
+        step = BENCH_SHARDS[0]
+        for i in range(0, shape[0], step):
+            block = rng.standard_normal((min(step, shape[0] - i), shape[1]), dtype="float32")
+            arr[i : i + block.shape[0], :] = block
+        written.append(f"{path}  shape={shape} shards={shards}")
+    return written
+
+
 def write_case(root: str, name: str, spec, data: np.ndarray, holes: bool, opts):
     zarr_format, shards, codec_name = spec
     path = f"{root}/{name}" + ("_holes" if holes else "")
@@ -111,6 +153,13 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("target", help="local directory, or s3://bucket/prefix")
     p.add_argument("--endpoint", default=os.environ.get("AWS_ENDPOINT_URL"))
+    p.add_argument(
+        "--bench",
+        type=float,
+        metavar="GB",
+        help="instead of the correctness matrix, write ~GB gigabytes for throughput "
+        "baselines (run this in the bucket's own region)",
+    )
     args = p.parse_args()
 
     opts: dict[str, object] = {}
@@ -120,6 +169,11 @@ def main() -> int:
             return 2
         if args.endpoint:
             opts["client_kwargs"] = {"endpoint_url": args.endpoint}
+
+    if args.bench:
+        for line in write_bench(args.target, args.bench, opts):
+            print(line)
+        return 0
 
     data = reference_data()
     for name, spec in CASES.items():
