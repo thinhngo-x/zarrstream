@@ -1,11 +1,11 @@
 [package]
-name = "zstream-core"
+name = "zarrstream-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "zstream engine: planner, store layer, read and write pipelines"
+description = "zarrstream engine: planner, store layer, read and write pipelines"
 
 [dependencies]
 thiserror.workspace = true

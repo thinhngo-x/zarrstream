@@ -1,4 +1,4 @@
-# zstream v0.1 — plan
+# zarrstream v0.1 — plan
 
 The living plan, with the full milestone detail, exit tests, benchmarks and risk
 table, is the shared doc:
@@ -6,7 +6,7 @@ table, is the shared doc:
 https://claude.ai/artifact/9xpgi6kHo3fHEqPEapYm9k
 
 That doc is the source of truth. This file exists so the milestone markers in the
-code (`Error::todo("…", "M2")`, the module table in `zstream-core/src/lib.rs`)
+code (`Error::todo("…", "M2")`, the module table in `zarrstream-core/src/lib.rs`)
 point somewhere, and so the shape stays visible without opening a browser:
 
 | Milestone | Week  | Lands                                                      |
@@ -23,7 +23,7 @@ point somewhere, and so the shape stays visible without opening a browser:
 
 Two standing rules:
 
-- **zarr-python is the correctness reference**, for reads and for arrays zstream
+- **zarr-python is the correctness reference**, for reads and for arrays zarrstream
   writes. Raw parallel GETs/PUTs are the speed ceiling.
 - **Out of scope stays out.** Local/SAN/NFS, random writes, local cache, block
   shuffle, Icechunk, GPU paths — all v0.2. New ideas go to the v0.2 backlog, not

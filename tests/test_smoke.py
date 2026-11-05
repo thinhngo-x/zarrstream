@@ -1,7 +1,7 @@
 """M0 exit test: the wheel builds, installs and imports."""
 
-import zstream
+import zarrstream
 
 
 def test_import():
-    assert zstream.__version__
+    assert zarrstream.__version__

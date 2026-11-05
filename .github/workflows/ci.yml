@@ -22,5 +22,5 @@ jobs:
       - run: pip install maturin pytest
       # M0 exit: a wheel installs and imports with no Rust toolchain needed.
       - run: maturin build --out dist
-      - run: pip install --find-links dist zstream
+      - run: pip install --find-links dist zarrstream
       - run: pytest -q

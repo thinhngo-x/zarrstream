@@ -7,7 +7,7 @@ version = "0.1.0-alpha.1"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT"
-repository = "https://github.com/thinhngo-x/zstream"
+repository = "https://github.com/thinhngo-x/zarrstream"
 description = "Streaming Zarr I/O: read, process and write cloud arrays concurrently"
 
 [workspace.dependencies]

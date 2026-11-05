@@ -1,16 +1,16 @@
 [package]
-name = "zstream-py"
+name = "zarrstream-py"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "PyO3 bindings for the zstream engine"
+description = "PyO3 bindings for the zarrstream engine"
 
 [lib]
-name = "_zstream"
+name = "_zarrstream"
 crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.30.1", features = ["extension-module", "abi3-py310"] }
-zstream-core = { path = "../zstream-core" }
+zarrstream-core = { path = "../zarrstream-core" }

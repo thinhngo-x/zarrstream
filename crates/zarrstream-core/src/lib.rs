@@ -1,4 +1,4 @@
-//! zstream engine.
+//! zarrstream engine.
 //!
 //! Everything that touches I/O, decoding or encoding lives here, in Rust, so the
 //! Python side never holds the GIL while waiting. Three stages run at once —
@@ -32,5 +32,5 @@ pub use error::{Error, Result};
 pub use holes::{Gap, HolePolicy};
 pub use plan::{Plan, Selection};
 
-/// Crate version, surfaced to Python as `zstream.__version__`.
+/// Crate version, surfaced to Python as `zarrstream.__version__`.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
