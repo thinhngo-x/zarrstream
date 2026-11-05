@@ -83,6 +83,75 @@ def zarr_python_read(url: str, endpoint: str | None, concurrency: int):
     return nbytes, time.perf_counter() - t0, checksum
 
 
+def objectstore_store(url: str, endpoint: str | None):
+    """zarr-python's ObjectStore backend, the only cloud store `zarrs` supports.
+
+    Returns (store, path) because obstore is bucket-scoped: the array's path
+    inside the bucket is passed to open_array separately.
+    """
+    import obstore
+    from zarr.storage import ObjectStore
+
+    bucket, _, path = url.removeprefix("s3://").partition("/")
+    cfg = {
+        "access_key_id": os.environ["AWS_ACCESS_KEY_ID"],
+        "secret_access_key": os.environ["AWS_SECRET_ACCESS_KEY"],
+        "region": os.environ.get("AWS_DEFAULT_REGION", "us-east-1"),
+    }
+    if endpoint:
+        cfg["endpoint"] = endpoint
+        cfg["virtual_hosted_style_request"] = False
+    return ObjectStore(obstore.store.S3Store(bucket, **cfg)), path
+
+
+def _read_blocks(arr, t0=None):
+    """Stream the array a shard-row (or chunk-row) at a time and sum it.
+
+    Same access pattern for every contender, so the numbers compare. Summing
+    forces the data to actually materialise rather than staying lazy.
+    """
+    step = (arr.shards or arr.chunks)[0]
+    t0 = t0 or time.perf_counter()
+    for i in range(0, arr.shape[0], step):
+        float(arr[i : i + step, :].sum())
+    return arr.nbytes, time.perf_counter() - t0
+
+
+def zarr_objectstore_read(url: str, endpoint: str | None, concurrency: int):
+    """zarr-python over obstore, with its stock codec pipeline.
+
+    The control for the next contender: it isolates the store change from the
+    codec-pipeline change, so a zarrs speedup can't be credited to obstore.
+    """
+    import zarr
+    from zarr.core.config import config
+
+    config.set({"async.concurrency": concurrency, "codec_pipeline.path": "zarr.core.codec_pipeline.BatchedCodecPipeline"})
+    store, path = objectstore_store(url, endpoint)
+    return _read_blocks(zarr.open_array(store=store, path=path, mode="r"))
+
+
+def zarrs_read(url: str, endpoint: str | None, concurrency: int):
+    """zarr-python over obstore, decoding through the zarrs Rust crate.
+
+    The prior art for this project's own thesis: a Rust engine under a Python
+    API. If it already closes the gap to raw GETs, zarrstream's remaining claim
+    is the read/process/write overlap, not read speed.
+    """
+    import zarr
+    import zarrs  # noqa: F401  (registers the pipeline by import path)
+    from zarr.core.config import config
+
+    config.set(
+        {
+            "codec_pipeline.path": "zarrs.ZarrsCodecPipeline",
+            "threading.max_workers": concurrency,
+        }
+    )
+    store, path = objectstore_store(url, endpoint)
+    return _read_blocks(zarr.open_array(store=store, path=path, mode="r"))
+
+
 def tensorstore_read(url: str, endpoint: str | None, concurrency: int):
     import tensorstore as ts
 
@@ -132,13 +201,19 @@ def main() -> int:
     runs = [zarr_python_read(args.url, args.endpoint, args.concurrency) for _ in range(args.repeat)]
     results["zarr_python"] = report("zarr_python", runs[0][0], statistics.median(r[1] for r in runs))
 
-    try:
-        runs = [tensorstore_read(args.url, args.endpoint, args.concurrency) for _ in range(args.repeat)]
-        results["tensorstore"] = report("tensorstore", runs[0][0], statistics.median(r[1] for r in runs))
-    except ImportError:
-        print(f"{'tensorstore':20} not installed (pip install tensorstore)")
-    except Exception as e:  # a wrong endpoint or an unsupported layout, not a crash
-        print(f"{'tensorstore':20} failed: {type(e).__name__}: {e}")
+    # Optional contenders: a missing one is reported and skipped, never fatal.
+    for name, fn, hint in (
+        ("zarr_obstore", zarr_objectstore_read, "pip install obstore"),
+        ("zarrs_rust", zarrs_read, "pip install zarrs obstore"),
+        ("tensorstore", tensorstore_read, "pip install tensorstore"),
+    ):
+        try:
+            runs = [fn(args.url, args.endpoint, args.concurrency) for _ in range(args.repeat)]
+            results[name] = report(name, runs[0][0], statistics.median(r[1] for r in runs))
+        except ImportError:
+            print(f"{name:20} not installed ({hint})")
+        except Exception as e:  # unsupported store or layout, not a crash
+            print(f"{name:20} failed: {type(e).__name__}: {e}")
 
     ceiling = results["raw_parallel_get"]
     print(f"\nzarrstream targets for this dataset:")
