@@ -1,0 +1,29 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "zstream"
+description = "Streaming Zarr I/O: read, process and write cloud arrays concurrently"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dynamic = ["version"]
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+# Only what a test run needs; zarr-python is the correctness reference.
+test = ["pytest>=8", "zarr>=3", "hypothesis>=6"]
+
+[project.urls]
+Repository = "https://github.com/thinhngo-x/zstream"
+
+[tool.maturin]
+manifest-path = "crates/zstream-py/Cargo.toml"
+python-source = "python"
+module-name = "zstream._zstream"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["minio: needs a running MinIO (CI, or docker compose up)"]

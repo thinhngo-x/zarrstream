@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+repository = "https://github.com/thinhngo-x/zstream"
+description = "Streaming Zarr I/O: read, process and write cloud arrays concurrently"
+
+[workspace.dependencies]
+thiserror = "2"
+
+# Enabled at M1 (native reader). Versions resolved 2026-11-05; see docs/PLAN.md.
+# zarrs = "0.23"          # Zarr metadata and codecs
+# object_store = "0.14"   # S3 / GCS / Azure
+# tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
+# bytes = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

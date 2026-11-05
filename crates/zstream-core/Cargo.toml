@@ -1,0 +1,17 @@
+[package]
+name = "zstream-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "zstream engine: planner, store layer, read and write pipelines"
+
+[dependencies]
+thiserror.workspace = true
+
+# Enabled at M1 / M2 / M3 — see docs/PLAN.md.
+# zarrs.workspace = true
+# object_store.workspace = true
+# tokio.workspace = true
+# bytes.workspace = true
