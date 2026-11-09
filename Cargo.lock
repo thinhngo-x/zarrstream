@@ -2930,6 +2930,7 @@ dependencies = [
 name = "zarrstream-core"
 version = "0.1.0-alpha.1"
 dependencies = [
+ "futures",
  "object_store",
  "serde_json",
  "thiserror",
