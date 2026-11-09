@@ -10,6 +10,13 @@ description = "zarrstream engine: planner, store layer, read and write pipelines
 [dependencies]
 thiserror.workspace = true
 
+[dev-dependencies]
+object_store = { version = "0.14.2", features = ["aws"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros"] }
+zarrs = { version = "0.22.10", features = ["async"] }
+zarrs_object_store = "0.7.0"
+
 # Enabled at M1 / M2 / M3 — see docs/PLAN.md.
 # zarrs.workspace = true
 # object_store.workspace = true
